@@ -85,5 +85,8 @@ hold on
 plot(az_1,el_1,'o')
 hold on
 plot(az_free,el_free,'r')
+xlabel('Azimuth of the triangle normal (deg)')
+ylabel('Elevation of the triangle normal (deg)')
+title ('Free propagation vs source capturing path plan')
 
 
