@@ -1,10 +1,15 @@
+%% Functions called for this script
+% All except GTOC8_phase3.m, om_constants.m
+
 %% Initialize
 
 clear all
 close all
 
+% Mat file for the source positions 
 load radiodata
 
+% Add the path to the SNOPT directory
 addpath(genpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle\snopt-matlab-2.5.0\'))
 addpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle')
 
@@ -15,13 +20,14 @@ mu_earth = 398600.436233; % earth gravitational constant (DE421 value; km**3/sec
 R_earth  = 6371; % km
 rkcoef =1;
 n_segments= 10; % number of segments for NLP call solution
-mass_current= 4e3; % 4 mt constant mass 
+mass_current= 4e3; % 4 mt constant mass, Not considering the change of mass
 
-% add phase change
+% add phase change for defining true anomaly values for S2 and S3
+% satellites
 del_ta_2=60*pi/180;
 del_ta_3=0;
 
-%% define state vectors for S1,S2,S3
+%% define state vectors for S1,S2,S3 using orbit elements format
 % Orbit 2 inclination of 60 deg, TA of 180 deg at Apogee
 apogee_orbit_2= R_earth + 1e6; % km
 perigee_orbit_2= R_earth + 384e3; % Moon position roughly 
@@ -59,7 +65,7 @@ sv_hist_1= propogate_earth(sv1,tdur);
 sv_hist_2= propogate_earth(sv2,tdur);
 sv_hist_3= propogate_earth(sv3,tdur);
 
-[az_free,el_free]= calculate_celestial_track(sv_hist_1,sv_hist_2,sv_hist_3);
+[az_free,el_free]= calculate_celestial_track(sv_hist_1(:,1:3),sv_hist_2(:,1:3),sv_hist_3(:,1:3));
 
 
 %% Propagation S1,S2,S3 for 3 days, check whether sources lie on track and capture
