@@ -1,8 +1,15 @@
+%% Functions called for this script
+% All except GTOC8_phase3.m, om_constants.m
+
+%% Initialize
+
 clear all
 close all
 
+% Mat file for the source positions 
 load radiodata
 
+% Add the path to the SNOPT directory
 addpath(genpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle\snopt-matlab-2.5.0\'))
 addpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle')
 
@@ -13,13 +20,14 @@ mu_earth = 398600.436233; % earth gravitational constant (DE421 value; km**3/sec
 R_earth  = 6371; % km
 rkcoef =1;
 n_segments= 10; % number of segments for NLP call solution
-mass_current= 4e3; % 4 mt constant mass 
+mass_current= 4e3; % 4 mt constant mass, Not considering the change of mass
 
-% add phase change
+% add phase change for defining true anomaly values for S2 and S3
+% satellites
 del_ta_2=60*pi/180;
 del_ta_3=0;
 
-%% define state vectors for S1,S2,S3
+%% define state vectors for S1,S2,S3 using orbit elements format
 % Orbit 2 inclination of 60 deg, TA of 180 deg at Apogee
 apogee_orbit_2= R_earth + 1e6; % km
 perigee_orbit_2= R_earth + 384e3; % Moon position roughly 
@@ -57,34 +65,20 @@ sv_hist_1= propogate_earth(sv1,tdur);
 sv_hist_2= propogate_earth(sv2,tdur);
 sv_hist_3= propogate_earth(sv3,tdur);
 
-[az_free,el_free]= calculate_celestial_track(sv_hist_1,sv_hist_2,sv_hist_3)
+[az_free,el_free]= calculate_celestial_track(sv_hist_1(:,1:3),sv_hist_2(:,1:3),sv_hist_3(:,1:3));
 
-% Plot the triangle normal on the global map
-normal_1= cross(sv_hist_2(:,1:3)-sv_hist_1(:,1:3),sv_hist_3(:,1:3)-sv_hist_1(:,1:3));
-
-[az_free, el_free, ~]= cart2sph(normal_1(:,1),normal_1(:,2),normal_1(:,3));
-
-% Rad to deg conversion
-az_free(az_free<0) = 2*pi +az_free(az_free<0);
-az_free = (180/pi) * az_free;  % Achieved source position
-el_free = (180/pi) * el_free;
 
 %% Propagation S1,S2,S3 for 3 days, check whether sources lie on track and capture
-tdur = 3;
+tdur = 600;
 [sv_hist,capture_hist] = propagate_check(sv1,sv2, sv3,tdur);
 
-sv_hist_1=capture_hist(:,1:3);
-sv_hist_2=capture_hist(:,7:9);
-sv_hist_3=capture_hist(:,13:15);
+sv_hist_1=sv_hist(:,1:3);
+sv_hist_2=sv_hist(:,7:9);
+sv_hist_3=sv_hist(:,13:15);
 
-% Plot the triangle normal on the global map
-normal_1= cross(sv_hist_2(:,1:3)-sv_hist_1(:,1:3),sv_hist_3(:,1:3)-sv_hist_1(:,1:3));
-[az_1, el_1, ~]= cart2sph(normal_1(:,1),normal_1(:,2),normal_1(:,3));
+[az_1,el_1]= calculate_celestial_track(sv_hist_1,sv_hist_2,sv_hist_3);
 
-% Rad to deg conversion
-az_1(az_1<0) = 2*pi +az_1(az_1<0);
-az_1 = (180/pi) * az_1;  % Achieved source position
-el_1 = (180/pi) * el_1;
+[points,points_matrix]=points_aggregator_capture_strategy(radiodata,sv_hist_1,sv_hist_2,sv_hist_3,az_1,el_1);
 
 % Check the points acquisition
 figure(1)
@@ -93,5 +87,8 @@ hold on
 plot(az_1,el_1,'o')
 hold on
 plot(az_free,el_free,'r')
+xlabel('Azimuth of the triangle normal (deg)')
+ylabel('Elevation of the triangle normal (deg)')
+title ('Free propagation vs source capturing path plan')
 
 

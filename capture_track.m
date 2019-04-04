@@ -15,7 +15,7 @@ function [f, g] = capture_track(x)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global  n_segments y_initial u_current 
+global  n_segments y_initial u_current mu_earth
 
 % compute duration of each time interval (non-dimensional)
 
@@ -86,6 +86,10 @@ r1 = yfinal(1:3);
 r2 = yfinal(7:9);
 r3 = yfinal(13:15);
 
+v1 = yfinal(4:6);
+v2 = yfinal(10:12);
+v3 = yfinal(16:18);
+
 [az_1,el_1]= calculate_celestial_track(r1',r2',r3');
 
 
@@ -109,6 +113,9 @@ f(4) = sum(Tx_S1.^2 + Ty_S1.^2 + Tz_S1.^2) / n_segments ;
 f(5) = sum(Tx_S2.^2 + Ty_S2.^2 + Tz_S2.^2) / n_segments ;
 f(6) = sum(Tx_S3.^2 + Ty_S3.^2 + Tz_S3.^2) / n_segments ;
 
+f(7) = -mu_earth / norm(r1) + norm(v1)^2 /2;
+f(8) = -mu_earth / norm(r2) + norm(v2)^2 /2;
+f(9) = -mu_earth / norm(r3) + norm(v3)^2 /2;
 
 % transpose
 f = f';

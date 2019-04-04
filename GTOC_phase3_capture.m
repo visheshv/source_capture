@@ -69,14 +69,16 @@ sv_hist_3= propogate_earth(sv3,tdur);
 
 
 %% Propagation S1,S2,S3 for 3 days, check whether sources lie on track and capture
-tdur = 3;
+tdur = 600;
 [sv_hist,capture_hist] = propagate_check(sv1,sv2, sv3,tdur);
 
-sv_hist_1=capture_hist(:,1:3);
-sv_hist_2=capture_hist(:,7:9);
-sv_hist_3=capture_hist(:,13:15);
+sv_hist_1=sv_hist(:,1:3);
+sv_hist_2=sv_hist(:,7:9);
+sv_hist_3=sv_hist(:,13:15);
 
 [az_1,el_1]= calculate_celestial_track(sv_hist_1,sv_hist_2,sv_hist_3);
+
+[points,points_matrix]=points_aggregator_capture_strategy(radiodata,sv_hist_1,sv_hist_2,sv_hist_3,az_1,el_1);
 
 % Check the points acquisition
 figure(1)

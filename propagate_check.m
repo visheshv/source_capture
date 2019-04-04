@@ -12,7 +12,7 @@ function [state_store,capture_states] = propagate_check(y1,y2,y3,tdur)
 %         planned  [km, km/s]
 
 %%  Initialize states, time step, other propagation params
-global mu_earth R_earth radiodata n_segments y_initial u_current
+global mu_earth R_earth radiodata n_segments y_initial u_current days_since_last_capture
 
 dtcsv = 60 * 24 * 3; % duration of propagation (minutes in 3 days)
 ti = 0.0d0;          % Initial time 
@@ -23,23 +23,22 @@ neq=18;              % Number of equations, dr/dt [3x1] and dv/dt [3x1] for all 
 state_store=zeros(floor(tsim/(dtcsv*60)),18); % Store states through propagation
 counter=0;
 yi = [y1;y2;y3];
+days_since_last_capture=0;
 
 u_current=zeros(9,1);
 
 while(1)
-    
+    %% Free propagation
+
     % step size guess (seconds)
 
     counter=counter+1;
     
     h = 10.0; % [s]
-    
     ti = tf;
-    
     tf = ti + 60.0d0 * dtcsv;
     
     % integrate from ti to tf
-    
     yfinal = rkf78('sel_eqm_modified', neq, ti, tf, h, tetol, yi); % Propagate all states 
     
     % compute final state vector
@@ -53,10 +52,13 @@ while(1)
     % normal
     temp=(radiodata(:,2)-az_1).^2+(radiodata(:,3)-el_1).^2 - 5^2;        %Check to see if lying within 5 deg circle of the final position of triangle normal
     
-    if sum(temp<0) ==0
+    %% Check for source
+    if sum(temp<0) ==0 
         % No action if there no source nearby
-    else
+        state_store(counter,:)=yfinal';
+    elseif sum(temp<0) ~=0 && tf <= 3 * 86400         % Only capture maneuver before 3 days allowed
         %% Capture the source if a source is found
+
         % Find the closest source to be captured
         [~,idx]=min(temp);
         source_target=radiodata(idx,2:3); % Targeted source position
@@ -72,7 +74,7 @@ while(1)
         
         % f vector consists of objective function limits in the first entry
         % and linear/non linear constraints in the remaining entries
-        % f = [transfer time (objective function); az_n_end; el_n_end;  magnitude of thrust S1;S2;S3]  
+        % f = [transfer time (objective function); az_n_end; el_n_end;  magnitude of thrust S1;S2;S3; Total energy at the end for S1;S2;S3]  
         
         flow(1) = 0;
         flow(2) = source_target(1)-0.07;    % Requirement of the capture within 0.1 deg, kept as 0.07, since 0.07 sized square has diagonal< 0.1 
@@ -80,6 +82,9 @@ while(1)
         flow(4) = 0;
         flow(5) = 0;
         flow(6) = 0;
+        flow(7) = -mu_earth/(R_earth + 0.9e6);
+        flow(8) = -mu_earth/(R_earth + 0.9e6);
+        flow(9) = -mu_earth/(R_earth + 0.9e6);
         
         fupp(1) = +Inf;
         fupp(2) = source_target(1)+0.07;
@@ -87,6 +92,9 @@ while(1)
         fupp(4) = 0.1^2;
         fupp(5) = 0.1^2;
         fupp(6) = 0.1^2;     
+        fupp(7) = -mu_earth/(R_earth + 1e6);
+        fupp(8) = -mu_earth/(R_earth + 1e6);
+        fupp(9) = -mu_earth/(R_earth + 1e6);
         
         flow = flow';
         fupp = fupp';
@@ -95,9 +103,9 @@ while(1)
         
         xstate = zeros(9 * n_segments + 1, 1); % No desire to provide special information
         
-        fmul = zeros(6, 1);                    % No information about Lagrange multipliers
+        fmul = zeros(9, 1);                    % No information about Lagrange multipliers
         
-        fstate = zeros(6, 1);                  % No special information
+        fstate = zeros(9, 1);                  % No special information
         
         snspec('capture_specs.txt');           % Empty file, no specs required
 
@@ -107,8 +115,12 @@ while(1)
         % value of the objective function
         [x, f, inform, xmul, fmul] = snopt(xg, xlb, xub, xmul, xstate,flow, fupp, fmul, fstate, 'capture_track');
         
-        % Assign values
+        %% Assign values
+              
+        %% ADD THE triangle altitude constraints 
         
+        %% Recreate the path 
+        % Propagate using the achieved control history
         % compute duration of each time interval (non-dimensional)
         deltat = x(1) / n_segments;
         
@@ -129,8 +141,6 @@ while(1)
         
         capture_states= zeros(n_segments , 18);
         
-        %% Recreate the path 
-        % Propagate using the achieved control history
         for i = 1:1:n_segments
             
             % current thrust values for Tx,Ty,Tz for S1,S2,S3
@@ -149,7 +159,7 @@ while(1)
             
             % check for end of simulation
             if (tf >= tof)
-            
+                
                 break;
                 
             end
@@ -166,27 +176,33 @@ while(1)
         az_1(az_1<0) = 2*pi +az_1(az_1<0);
         az_1 = (180/pi) * az_1;  % Achieved source position
         el_1 = (180/pi) * el_1;
-            
         
-        state_store(counter,:)=yfinal';
-
-        break % after the first source hit
-       
+        % Rewrite the state-store matrix with captured trajectory
+        state_store=[zeros(n_segments,18); state_store];
+        state_store(1:n_segments,:)=capture_states;
+        
+        counter=n_segments;
+        
+        u_current =zeros(9,1); % Make sure next propagation involves no active firing
+        
+        days_since_last_capture = 0;
+        
+    elseif sum(temp<0) ~=0 && tf > 3 * 86400
+            state_store(counter,:)=yfinal';      % Free propagation state stored
     end
-    
-    state_store(counter,:)=yfinal';
     
     yi = yfinal;
     
-    % check for end of simulation
+    % Update time since last capture
+    days_since_last_capture = days_since_last_capture + 60.0d0 * dtcsv/86400;
     
+    % check for end of simulation    
     if (tf >= tsim)
-        
         break;
-        
     end
     
 end
-state_store( ~any(state_store,2), : ) = [];  %rows
+
+state_store( ~any(state_store,2), : ) = [];  % remove empty rows
 
 

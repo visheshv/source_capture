@@ -10,7 +10,7 @@ R_earth  = 6371; % km
 rkcoef =1;
 
 % add phase change
-del_ta_2=0*pi/180;
+del_ta_2=60*pi/180;
 del_ta_3=0;
 
 %% define state vectors for S1,S2,S3
@@ -46,7 +46,7 @@ sv3=orb2eci(mu_earth,oev3);
 %% Free Propagation S1 for <> year
 
 % initialize initial and final times and total duration
-tdur = 1; % days
+tdur = 50; % days
 
 sv_hist_1= propogate_earth(sv1,tdur);
 sv_hist_2= propogate_earth(sv2,tdur);
