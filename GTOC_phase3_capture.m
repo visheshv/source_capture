@@ -14,13 +14,16 @@ addpath(genpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle\snopt-matlab-2.
 addpath('C:\Users\Vishesh\Documents\GTOC\GTOC 8\CD Eagle')
 
 % define constants
-global mu_earth R_earth rkcoef radiodata n_segments mass_current
+global mu_earth R_earth rkcoef radiodata n_segments 
+global mass_current mass_initial isp_electric
 
 mu_earth = 398600.436233; % earth gravitational constant (DE421 value; km**3/sec**2)
 R_earth  = 6371; % km
 rkcoef =1;
 n_segments= 10; % number of segments for NLP call solution
-mass_current= 4e3; % 4 mt constant mass, Not considering the change of mass
+mass_current= [4e3;4e3;4e3]; % 4 mt initial mass, Not considering the change of mass
+mass_initial= mass_current; % 4 mt initial mass, Not considering the change of mass
+isp_electric = 5000;
 
 % add phase change for defining true anomaly values for S2 and S3
 % satellites

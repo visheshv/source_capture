@@ -15,7 +15,7 @@ function [f, g] = capture_track(x)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global  n_segments y_initial u_current mu_earth
+global  n_segments y_initial u_current mu_earth mass_initial mass_current isp_electric
 
 % compute duration of each time interval (non-dimensional)
 
@@ -59,6 +59,13 @@ for i = 1:1:n_segments
     
     tf = ti + deltat;
     
+    % Update the masses of the three spacecraft
+    T1 = norm(u_current(1:3));
+    T2 = norm(u_current(4:6));
+    T3 = norm(u_current(7:9));
+    
+    mass_current = mass_current - [T1;T2;T3] * (deltat / (9.806* isp_electric));
+        
     % integrate from current ti to tf
     
     yfinal = rkf78('sel_eqm_modified', neq, ti, tf, h, tetol, yi);
@@ -76,6 +83,9 @@ for i = 1:1:n_segments
     end
     
 end
+
+% Reset the masses before the next call
+mass_current = mass_initial;
 
 % objective function (thrust duration; seconds)
 f(1) = x(1);

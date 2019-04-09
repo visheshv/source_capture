@@ -13,6 +13,7 @@ function [state_store,capture_states] = propagate_check(y1,y2,y3,tdur)
 
 %%  Initialize states, time step, other propagation params
 global mu_earth R_earth radiodata n_segments y_initial u_current days_since_last_capture
+global mass_current isp_electric
 
 dtcsv = 60 * 24 * 3; % duration of propagation (minutes in 3 days)
 ti = 0.0d0;          % Initial time 
@@ -149,6 +150,13 @@ while(1)
             % increment initial and final times
             ti = ti + deltat;
             tf = ti + deltat;
+            
+            % Update the masses of the three spacecraft
+            T1 = norm(u_current(1:3));
+            T2 = norm(u_current(4:6));
+            T3 = norm(u_current(7:9));
+            
+            mass_current = mass_current - [T1;T2;T3] * (deltat / (9.806* isp_electric));
             
             % integrate from current ti to tf
             yfinal = rkf78('sel_eqm_modified', neq, ti, tf, h, tetol, yi);

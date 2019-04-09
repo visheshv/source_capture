@@ -20,16 +20,16 @@ function ydot = sel_eqm_modified (t, y)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global u_current mass_current
+global u_current mass_current 
 
 % acceleration due to the moon
 y1 = y(1:6);
 y2 = y(7:12);
 y3 = y(13:18);
 
-u1 = u_current(1:3)/mass_current;
-u2 = u_current(4:6)/mass_current;
-u3 = u_current(7:9)/mass_current;
+u1 = u_current(1:3)/mass_current(1);
+u2 = u_current(4:6)/mass_current(2);
+u3 = u_current(7:9)/mass_current(3);
 
 agrav1 = gravity(y1);
 agrav2 = gravity(y2);
