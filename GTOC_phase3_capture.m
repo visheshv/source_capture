@@ -18,7 +18,7 @@ global mu_earth R_earth rkcoef radiodata n_segments
 global mass_current mass_initial isp_electric
 
 mu_earth = 398600.436233; % earth gravitational constant (DE421 value; km**3/sec**2)
-R_earth  = 6371; % km
+R_earth  = 6378.14; % km
 rkcoef =1;
 n_segments= 10; % number of segments for NLP call solution
 mass_current= [4e3;4e3;4e3]; % 4 mt initial mass, Not considering the change of mass
